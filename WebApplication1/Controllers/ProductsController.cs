@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 using WebApplication1.Data;
 using WebApplication1.DTOs;
 using WebApplication1.Models;
@@ -92,6 +94,7 @@ namespace WebApplication1.Controllers
                 return BadRequest("Danh mục hoặc Thương hiệu không tồn tại.");
 
             var product = _mapper.Map<Product>(productDto);
+            product.Slug = GenerateSlug(product.Name);
 
             // Xử lý upload ảnh lên Cloudinary nếu có file đính kèm
             if (productDto.ImageFile != null)
@@ -110,6 +113,39 @@ namespace WebApplication1.Controllers
             await _context.Entry(product).Reference(p => p.Brand).LoadAsync();
 
             return CreatedAtAction(nameof(GetProducts), new { id = product.Id }, _mapper.Map<ProductResponseDto>(product));
+        }
+
+        private static string GenerateSlug(string name)
+        {
+            var normalizedName = name
+                .Replace('đ', 'd')
+                .Replace('Đ', 'D')
+                .Normalize(NormalizationForm.FormD);
+
+            var slug = new StringBuilder();
+            var previousWasSeparator = false;
+
+            foreach (var character in normalizedName)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
+                {
+                    continue;
+                }
+
+                if (char.IsLetterOrDigit(character))
+                {
+                    slug.Append(char.ToLowerInvariant(character));
+                    previousWasSeparator = false;
+                }
+                else if (slug.Length > 0 && !previousWasSeparator)
+                {
+                    slug.Append('-');
+                    previousWasSeparator = true;
+                }
+            }
+
+            var generatedSlug = slug.ToString().Trim('-');
+            return string.IsNullOrEmpty(generatedSlug) ? "product" : generatedSlug;
         }
 
         // 3. Cập nhật Sản phẩm (Khóa Auth)

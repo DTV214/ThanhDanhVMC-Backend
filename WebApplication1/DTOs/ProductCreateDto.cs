@@ -6,8 +6,6 @@ namespace WebApplication1.DTOs
     {
         [Required, MaxLength(200)]
         public string Name { get; set; } = string.Empty;
-        [Required]
-        public string Slug { get; set; } = string.Empty;
         public string? SKU { get; set; }
         public string? Description { get; set; }
         // Thay đổi quan trọng: Nhận file ảnh thay vì đường link string
