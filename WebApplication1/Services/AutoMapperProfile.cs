@@ -12,6 +12,11 @@ namespace WebApplication1.Services
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Brand, BrandDto>().ReverseMap();
 
+            CreateMap<CategoryCreateDto, Category>()
+    .ForMember(dest => dest.ImageUrl, opt => opt.Ignore());
+
+            CreateMap<BrandCreateDto, Brand>()
+                .ForMember(dest => dest.ImageUrl, opt => opt.Ignore());
             // Cấu hình mapping cho Product
             CreateMap<ProductCreateDto, Product>();
             CreateMap<Product, ProductResponseDto>()

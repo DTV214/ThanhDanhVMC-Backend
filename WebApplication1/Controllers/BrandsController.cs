@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.DTOs;
 using WebApplication1.Models;
+using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -14,11 +15,13 @@ namespace WebApplication1.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IPhotoService _photoService;
 
-        public BrandsController(ApplicationDbContext context, IMapper mapper)
+        public BrandsController(ApplicationDbContext context, IMapper mapper, IPhotoService photoService)
         {
             _context = context;
             _mapper = mapper;
+            _photoService = photoService;
         }
 
         [HttpGet]
@@ -30,9 +33,19 @@ namespace WebApplication1.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<ActionResult<BrandDto>> PostBrand(BrandDto brandDto)
+        public async Task<ActionResult<BrandDto>> PostBrand([FromForm] BrandCreateDto brandDto)
         {
             var brand = _mapper.Map<Brand>(brandDto);
+
+            if (brandDto.Image != null)
+            {
+                var result = await _photoService.AddPhotoAsync(brandDto.Image);
+                if (result.Error == null && result.SecureUrl != null)
+                {
+                    brand.ImageUrl = result.SecureUrl.AbsoluteUri;
+                }
+            }
+
             _context.Brands.Add(brand);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetBrands), new { id = brand.Id }, _mapper.Map<BrandDto>(brand));

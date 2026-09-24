@@ -5,6 +5,7 @@ using WebApplication1.Data;
 using WebApplication1.DTOs;
 using WebApplication1.Models;
 using Microsoft.AspNetCore.Authorization;
+using WebApplication1.Services;
 namespace WebApplication1.Controllers
 {
     [Route("api/[controller]")]
@@ -13,11 +14,13 @@ namespace WebApplication1.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IPhotoService _photoService;
 
-        public CategoriesController(ApplicationDbContext context, IMapper mapper)
+        public CategoriesController(ApplicationDbContext context, IMapper mapper, IPhotoService photoService)
         {
             _context = context;
             _mapper = mapper;
+            _photoService = photoService;
         }
 
         // 1. Lấy danh sách (GET)
@@ -31,9 +34,19 @@ namespace WebApplication1.Controllers
         // 2. Thêm mới (POST)
         [Authorize]
         [HttpPost]
-        public async Task<ActionResult<CategoryDto>> PostCategory(CategoryDto categoryDto)
+        public async Task<ActionResult<CategoryDto>> PostCategory([FromForm] CategoryCreateDto categoryDto)
         {
             var category = _mapper.Map<Category>(categoryDto);
+
+            if (categoryDto.Image != null)
+            {
+                var result = await _photoService.AddPhotoAsync(categoryDto.Image);
+                if (result.Error == null && result.SecureUrl != null)
+                {
+                    category.ImageUrl = result.SecureUrl.AbsoluteUri;
+                }
+            }
+
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
 
