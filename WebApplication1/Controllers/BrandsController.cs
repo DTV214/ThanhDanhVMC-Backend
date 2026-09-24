@@ -53,13 +53,23 @@ namespace WebApplication1.Controllers
 
         [Authorize]
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBrand(int id, BrandDto brandDto)
+        public async Task<IActionResult> PutBrand(int id, [FromForm] BrandCreateDto brandDto)
         {
-            if (id != brandDto.Id) return BadRequest("ID không hợp lệ");
             var brand = await _context.Brands.FindAsync(id);
             if (brand == null) return NotFound();
 
-            _mapper.Map(brandDto, brand);
+            brand.Name = brandDto.Name;
+            brand.Description = brandDto.Description;
+
+            if (brandDto.Image != null)
+            {
+                var result = await _photoService.AddPhotoAsync(brandDto.Image);
+                if (result.Error != null) return BadRequest(result.Error.Message);
+                if (result.SecureUrl == null) return BadRequest("Không thể lấy đường dẫn ảnh sau khi tải lên.");
+
+                brand.ImageUrl = result.SecureUrl.AbsoluteUri;
+            }
+
             await _context.SaveChangesAsync();
             return NoContent();
         }

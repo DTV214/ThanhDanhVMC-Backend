@@ -56,14 +56,23 @@ namespace WebApplication1.Controllers
         // 3. Cập nhật (PUT)
         [Authorize]
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCategory(int id, CategoryDto categoryDto)
+        public async Task<IActionResult> PutCategory(int id, [FromForm] CategoryCreateDto categoryDto)
         {
-            if (id != categoryDto.Id) return BadRequest("ID không hợp lệ");
-
             var category = await _context.Categories.FindAsync(id);
             if (category == null) return NotFound();
 
-            _mapper.Map(categoryDto, category);
+            category.Name = categoryDto.Name;
+            category.Description = categoryDto.Description;
+
+            if (categoryDto.Image != null)
+            {
+                var result = await _photoService.AddPhotoAsync(categoryDto.Image);
+                if (result.Error != null) return BadRequest(result.Error.Message);
+                if (result.SecureUrl == null) return BadRequest("Không thể lấy đường dẫn ảnh sau khi tải lên.");
+
+                category.ImageUrl = result.SecureUrl.AbsoluteUri;
+            }
+
             await _context.SaveChangesAsync();
 
             return NoContent();
