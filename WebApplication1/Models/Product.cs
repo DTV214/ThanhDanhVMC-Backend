@@ -13,6 +13,9 @@ namespace WebApplication1.Models
         public string? TechnicalSpecs { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; } // Sẽ dùng lưu link từ Cloudinary
+        public string? ImageGallery { get; set; }
+        public int StockQuantity { get; set; }
+        public bool IsActive { get; set; } = true;
 
         // Khóa ngoại
         public int CategoryId { get; set; }

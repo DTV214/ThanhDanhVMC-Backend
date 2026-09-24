@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using WebApplication1.Data;
 using WebApplication1.DTOs;
 using WebApplication1.Models;
@@ -96,15 +97,8 @@ namespace WebApplication1.Controllers
             var product = _mapper.Map<Product>(productDto);
             product.Slug = GenerateSlug(product.Name);
 
-            // Xử lý upload ảnh lên Cloudinary nếu có file đính kèm
-            if (productDto.ImageFile != null)
-            {
-                var uploadResult = await _photoService.AddPhotoAsync(productDto.ImageFile);
-                if (uploadResult.Error != null) return BadRequest(uploadResult.Error.Message);
-
-                // Lấy link ảnh an toàn từ Cloudinary lưu vào database
-                product.ImageUrl = uploadResult.SecureUrl.AbsoluteUri;
-            }
+            var uploadError = await UploadAndApplyImagesAsync(product, productDto.Images);
+            if (uploadError != null) return BadRequest(uploadError);
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
@@ -113,6 +107,45 @@ namespace WebApplication1.Controllers
             await _context.Entry(product).Reference(p => p.Brand).LoadAsync();
 
             return CreatedAtAction(nameof(GetProducts), new { id = product.Id }, _mapper.Map<ProductResponseDto>(product));
+        }
+
+        private async Task<string?> UploadAndApplyImagesAsync(Product product, List<IFormFile>? images)
+        {
+            if (images == null || images.Count == 0)
+            {
+                return null;
+            }
+
+            if (images.Count > 3)
+            {
+                return "Chỉ được tải lên tối đa 3 ảnh sản phẩm.";
+            }
+
+            var imageUrls = new List<string>();
+            foreach (var image in images)
+            {
+                if (image.Length == 0)
+                {
+                    return "Tệp ảnh không hợp lệ.";
+                }
+
+                var uploadResult = await _photoService.AddPhotoAsync(image);
+                if (uploadResult.Error != null)
+                {
+                    return uploadResult.Error.Message;
+                }
+
+                if (uploadResult.SecureUrl == null)
+                {
+                    return "Không thể lấy đường dẫn ảnh sau khi tải lên.";
+                }
+
+                imageUrls.Add(uploadResult.SecureUrl.AbsoluteUri);
+            }
+
+            product.ImageUrl = imageUrls[0];
+            product.ImageGallery = JsonSerializer.Serialize(imageUrls.Skip(1));
+            return null;
         }
 
         private static string GenerateSlug(string name)
@@ -162,7 +195,19 @@ namespace WebApplication1.Controllers
             if (!categoryExists || !brandExists)
                 return BadRequest("Danh mục hoặc Thương hiệu không hợp lệ.");
 
+            var previousIsActive = product.IsActive;
+            var isActiveWasProvided = Request.HasFormContentType &&
+                                      Request.Form.ContainsKey(nameof(ProductCreateDto.IsActive));
+
             _mapper.Map(productDto, product);
+            if (!isActiveWasProvided)
+            {
+                product.IsActive = previousIsActive;
+            }
+
+            var uploadError = await UploadAndApplyImagesAsync(product, productDto.Images);
+            if (uploadError != null) return BadRequest(uploadError);
+
             await _context.SaveChangesAsync();
 
             return NoContent();

@@ -9,8 +9,9 @@ namespace WebApplication1.DTOs
         public string? SKU { get; set; }
         public string? TechnicalSpecs { get; set; }
         public string? Description { get; set; }
-        // Thay đổi quan trọng: Nhận file ảnh thay vì đường link string
-        public IFormFile? ImageFile { get; set; }
+        public List<IFormFile>? Images { get; set; }
+        public int StockQuantity { get; set; }
+        public bool IsActive { get; set; } = true;
 
         [Required]
         public int CategoryId { get; set; }

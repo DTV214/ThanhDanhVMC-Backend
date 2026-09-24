@@ -9,6 +9,9 @@
         public string? TechnicalSpecs { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
+        public string? ImageGallery { get; set; }
+        public int StockQuantity { get; set; }
+        public bool IsActive { get; set; }
 
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty; // Lấy thêm tên Danh mục
