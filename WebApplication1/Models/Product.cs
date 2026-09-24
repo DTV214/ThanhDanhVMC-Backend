@@ -10,6 +10,7 @@ namespace WebApplication1.Models
         public string Name { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;
         public string? SKU { get; set; }
+        public string? TechnicalSpecs { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; } // Sẽ dùng lưu link từ Cloudinary
 
